@@ -6,7 +6,8 @@ import { getCurrentUser } from "@/lib/session";
 import { Badge, TerminalCard } from "@/components/ui/primitives";
 import { TradeActionPanel } from "@/components/TradeActionPanel";
 import { ThreeAssetShowcase } from "@/components/ThreeAssetShowcase";
-import { formatCurrency } from "@/lib/utils";
+import { LightPriceChart } from "@/components/LightPriceChart";
+import { formatCurrency, parseSparkline } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -119,6 +120,27 @@ export default async function AssetDetailPage({
                 </div>
               </div>
             </div>
+          </TerminalCard>
+
+          {/* Clean 7-Day Price Trend */}
+          <TerminalCard className="p-6 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-semibold text-slate-900">Recent Price Trend</div>
+              <span
+                className={
+                  asset.floorDelta24h >= 0
+                    ? "text-xs font-semibold text-emerald-600"
+                    : "text-xs font-semibold text-red-600"
+                }
+              >
+                {asset.floorDelta24h >= 0 ? "+" : ""}
+                {asset.floorDelta24h.toFixed(1)}% (7d)
+              </span>
+            </div>
+            <LightPriceChart
+              data={parseSparkline(asset.sparklineData)}
+              positive={asset.floorDelta24h >= 0}
+            />
           </TerminalCard>
 
           {/* How Safe Transfer Works for this item */}

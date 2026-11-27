@@ -13,6 +13,7 @@ import {
   RefreshCcw,
 } from "lucide-react";
 import { Badge, Button, Input, TerminalCard } from "@/components/ui/primitives";
+import { ThreeEscrowSeal } from "@/components/ThreeEscrowSeal";
 import { cn, formatCurrency } from "@/lib/utils";
 import {
   submitDomainEppAction,
@@ -119,9 +120,10 @@ export function EscrowDealRoomClient({
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
-      {/* Simple 3-Step Package Tracker */}
-      <TerminalCard className="p-6">
-        <div className="grid grid-cols-3 gap-4">
+      {/* Simple 3-Step Package Tracker with 3D Protection Seal */}
+      <TerminalCard className="p-6 flex flex-col sm:flex-row items-center gap-6">
+        <ThreeEscrowSeal state={escrow.state} />
+        <div className="grid grid-cols-3 gap-4 flex-1 w-full">
           {[
             { num: 1, title: "Payment Protected", sub: "Held safely by Cust0dy" },
             { num: 2, title: "Transfer in Progress", sub: "Seller hands over access" },
