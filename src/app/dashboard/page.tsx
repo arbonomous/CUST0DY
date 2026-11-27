@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PlusCircle } from "lucide-react";
+import { Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { parseStringArray } from "@/lib/utils";
@@ -12,8 +12,8 @@ export default async function DashboardPage() {
   const user = await getCurrentUser();
   if (!user) {
     return (
-      <div className="py-12 text-center text-sm text-zinc-400">
-        Please select or authenticate a trading desk in the header.
+      <div className="py-16 text-center text-sm text-slate-500">
+        Please sign in to view your orders.
       </div>
     );
   }
@@ -68,23 +68,20 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#27272A] pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <div className="font-mono text-[11px] uppercase text-[#10B981]">
-            ACTIVE DESK • {user.alias}
-          </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-50 mt-0.5">
-            Portfolio, Escrow Deals & Swap Inventory
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+            My Orders &amp; Listings
           </h1>
-          <p className="text-xs text-zinc-400 mt-1">
-            Manage verified inventory ready for one-click barter swaps, active custody deal rooms, and Stripe/USDC payout rails.
+          <p className="text-sm text-slate-500 mt-1">
+            Track active transfers, respond to trade offers, and manage your payouts.
           </p>
         </div>
 
         <Link href="/list">
           <Button variant="primary">
-            <PlusCircle className="w-3.5 h-3.5" />
-            Verify New Asset
+            <Plus className="w-4 h-4" />
+            Sell an Asset
           </Button>
         </Link>
       </div>

@@ -1,4 +1,3 @@
-import { DollarSign, Lock, AlertTriangle, TrendingUp } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { TerminalCard } from "@/components/ui/primitives";
 import { AdminOpsClient } from "@/components/AdminOpsClient";
@@ -30,87 +29,40 @@ export default async function AdminOpsPage() {
     }),
   ]);
 
-  const gmv = escrows
-    .filter((e) => e.state !== "REFUNDED")
-    .reduce((sum, e) => sum + e.assetPrice, 0);
-
-  const collectedFees = feeLedger
-    .filter((f) => f.status === "COLLECTED")
-    .reduce((sum, f) => sum + f.totalFee, 0);
-
-  const pendingFees = feeLedger
-    .filter((f) => f.status === "PENDING")
-    .reduce((sum, f) => sum + f.totalFee, 0);
-
+  const gmv = escrows.filter((e) => e.state !== "REFUNDED").reduce((s, e) => s + e.assetPrice, 0);
+  const collected = feeLedger.filter((f) => f.status === "COLLECTED").reduce((s, f) => s + f.totalFee, 0);
   const activeCount = escrows.filter((e) =>
     ["FUNDS_LOCKED", "CUSTODY_HANDOVER", "VERIFICATION_RELEASE"].includes(e.state)
   ).length;
-
   const disputeCount = escrows.filter((e) => e.state === "DISPUTED").length;
 
   return (
     <div className="space-y-6">
-      <div className="border-b border-[#27272A] pb-4 space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">
-          Admin Revenue & Escrow Operations Console
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+          Admin Console
         </h1>
-        <p className="text-xs text-zinc-400">
-          Real-time GMV, 7.5% platform revenue ledger, active custody vaults, encrypted audit logs, and concierge dispute overrides.
+        <p className="text-sm text-slate-500 mt-1">
+          Platform sales volume, 7.5% fee revenue, active transfers, and support overrides.
         </p>
       </div>
 
-      {/* Real-Time KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <TerminalCard className="p-4">
-          <div className="flex items-center justify-between font-mono text-[10px] uppercase text-zinc-500">
-            <span>Gross Merchandise Vol (GMV)</span>
-            <TrendingUp className="w-3.5 h-3.5 text-[#3B82F6]" />
-          </div>
-          <div className="font-mono text-2xl font-bold text-zinc-50 mt-1.5">
-            {formatCurrency(gmv)}
-          </div>
-          <div className="text-[11px] text-zinc-500 mt-0.5">
-            Across {escrows.length} total escrow vaults
-          </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <TerminalCard className="p-5">
+          <div className="text-xs text-slate-500">Total Volume (GMV)</div>
+          <div className="text-2xl font-bold text-slate-900 mt-1">{formatCurrency(gmv)}</div>
         </TerminalCard>
-
-        <TerminalCard className="p-4">
-          <div className="flex items-center justify-between font-mono text-[10px] uppercase text-zinc-500">
-            <span>Net Fees Earned (7.5%)</span>
-            <DollarSign className="w-3.5 h-3.5 text-[#10B981]" />
-          </div>
-          <div className="font-mono text-2xl font-bold text-[#10B981] mt-1.5">
-            {formatCurrency(collectedFees)}
-          </div>
-          <div className="text-[11px] text-zinc-500 mt-0.5">
-            +{formatCurrency(pendingFees)} pending in active custody
-          </div>
+        <TerminalCard className="p-5">
+          <div className="text-xs text-slate-500">Fees Earned (7.5%)</div>
+          <div className="text-2xl font-bold text-emerald-600 mt-1">{formatCurrency(collected)}</div>
         </TerminalCard>
-
-        <TerminalCard className="p-4">
-          <div className="flex items-center justify-between font-mono text-[10px] uppercase text-zinc-500">
-            <span>Active Escrows in Custody</span>
-            <Lock className="w-3.5 h-3.5 text-[#F59E0B]" />
-          </div>
-          <div className="font-mono text-2xl font-bold text-[#F59E0B] mt-1.5">
-            {activeCount}
-          </div>
-          <div className="text-[11px] text-zinc-500 mt-0.5">
-            Protected by 24h SLA auto-refund guard
-          </div>
+        <TerminalCard className="p-5">
+          <div className="text-xs text-slate-500">Active Transfers</div>
+          <div className="text-2xl font-bold text-amber-600 mt-1">{activeCount}</div>
         </TerminalCard>
-
-        <TerminalCard className="p-4">
-          <div className="flex items-center justify-between font-mono text-[10px] uppercase text-zinc-500">
-            <span>Dispute Queue</span>
-            <AlertTriangle className="w-3.5 h-3.5 text-[#EF4444]" />
-          </div>
-          <div className="font-mono text-2xl font-bold text-zinc-50 mt-1.5">
-            {disputeCount}
-          </div>
-          <div className="text-[11px] text-zinc-500 mt-0.5">
-            {disputeCount === 0 ? "All vaults operating normally" : "Requires concierge review"}
-          </div>
+        <TerminalCard className="p-5">
+          <div className="text-xs text-slate-500">Support Disputes</div>
+          <div className="text-2xl font-bold text-slate-900 mt-1">{disputeCount}</div>
         </TerminalCard>
       </div>
 

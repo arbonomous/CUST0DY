@@ -3,20 +3,16 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Lock,
-  KeyRound,
-  ShieldCheck,
   CheckCircle2,
-  AlertTriangle,
-  RefreshCcw,
-  Mail,
-  ArrowLeftRight,
+  ShieldCheck,
+  Clock,
+  ChevronDown,
   Eye,
   EyeOff,
-  FileCode2,
+  AlertTriangle,
+  RefreshCcw,
 } from "lucide-react";
 import { Badge, Button, Input, TerminalCard } from "@/components/ui/primitives";
-import { CountdownTimer } from "@/components/CountdownTimer";
 import { cn, formatCurrency } from "@/lib/utils";
 import {
   submitDomainEppAction,
@@ -72,13 +68,6 @@ interface AuditLogItem {
   createdAtIso: string;
 }
 
-const STEPS = [
-  { key: "FUNDS_LOCKED", num: "01", label: "FUNDS LOCKED", desc: "Escrow Funded & Masked" },
-  { key: "CUSTODY_HANDOVER", num: "02", label: "CUSTODY HANDOVER", desc: "AES-256 Vault Deposit" },
-  { key: "VERIFICATION_RELEASE", num: "03", label: "VERIFICATION & RELEASE", desc: "RDAP / 12h Inspection" },
-  { key: "SETTLED", num: "04", label: "ATOMIC SETTLEMENT", desc: "Keys & Payout Released" },
-];
-
 export function EscrowDealRoomClient({
   escrow,
   auditLogs,
@@ -96,28 +85,28 @@ export function EscrowDealRoomClient({
   const [disputeInput, setDisputeInput] = useState("");
   const [showDisputeBox, setShowDisputeBox] = useState(false);
   const [revealSecret, setRevealSecret] = useState(false);
+  const [showSecurityDrawer, setShowSecurityDrawer] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "ok" | "err"; msg: string } | null>(null);
 
   const isDomain =
     escrow.assetCategory === "AI_DOMAIN" || escrow.assetCategory === "TECH_DOMAIN";
 
-  const stepIndex =
+  // Simple 3-step package tracker index
+  const trackerStep =
     escrow.state === "FUNDS_LOCKED"
-      ? 0
-      : escrow.state === "CUSTODY_HANDOVER"
       ? 1
-      : escrow.state === "VERIFICATION_RELEASE"
+      : escrow.state === "CUSTODY_HANDOVER" || escrow.state === "VERIFICATION_RELEASE"
       ? 2
       : escrow.state === "SETTLED"
       ? 3
-      : -1;
+      : 0;
 
   function runAction(fn: () => Promise<{ ok: boolean; error?: string }>, okMsg: string) {
     setFeedback(null);
     startTransition(async () => {
       const res = await fn();
       if (!res.ok) {
-        setFeedback({ type: "err", msg: res.error || "Operation failed." });
+        setFeedback({ type: "err", msg: res.error || "Something went wrong." });
         return;
       }
       setFeedback({ type: "ok", msg: okMsg });
@@ -129,284 +118,196 @@ export function EscrowDealRoomClient({
   }
 
   return (
-    <div className="space-y-6">
-      {/* State Machine Stepper */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-        {STEPS.map((step, i) => {
-          const completed = stepIndex > i || escrow.state === "SETTLED";
-          const current = stepIndex === i && escrow.state !== "SETTLED";
-          return (
-            <div
-              key={step.key}
-              className={cn(
-                "rounded-lg border p-3 transition-colors",
-                completed
-                  ? "bg-[#10B981]/8 border-[#10B981]/35"
-                  : current
-                  ? "bg-[#F59E0B]/10 border-[#F59E0B]/45"
-                  : "bg-[#121215] border-[#27272A]"
-              )}
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-[10px] text-zinc-500">STATE {step.num}</span>
-                {completed ? (
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[#10B981]" />
-                ) : current ? (
-                  <span className="w-2 h-2 rounded-full bg-[#F59E0B]" />
-                ) : null}
+    <div className="space-y-6 max-w-4xl mx-auto">
+      {/* Simple 3-Step Package Tracker */}
+      <TerminalCard className="p-6">
+        <div className="grid grid-cols-3 gap-4">
+          {[
+            { num: 1, title: "Payment Protected", sub: "Held safely by Cust0dy" },
+            { num: 2, title: "Transfer in Progress", sub: "Seller hands over access" },
+            { num: 3, title: "Complete", sub: "Asset yours & seller paid" },
+          ].map((step) => {
+            const done = trackerStep > step.num || escrow.state === "SETTLED";
+            const active = trackerStep === step.num && escrow.state !== "SETTLED";
+            return (
+              <div key={step.num} className="flex flex-col items-center text-center space-y-2">
+                <div
+                  className={cn(
+                    "w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold border transition-colors",
+                    done
+                      ? "bg-emerald-600 text-white border-emerald-600"
+                      : active
+                      ? "bg-slate-900 text-white border-slate-900"
+                      : "bg-zinc-100 text-slate-400 border-zinc-200"
+                  )}
+                >
+                  {done ? <CheckCircle2 className="w-5 h-5" /> : step.num}
+                </div>
+                <div>
+                  <div
+                    className={cn(
+                      "text-xs sm:text-sm font-semibold",
+                      done || active ? "text-slate-900" : "text-slate-400"
+                    )}
+                  >
+                    {step.title}
+                  </div>
+                  <div className="text-[11px] text-slate-500 hidden sm:block">{step.sub}</div>
+                </div>
               </div>
-              <div
-                className={cn(
-                  "font-mono text-xs font-bold mt-1",
-                  completed
-                    ? "text-[#10B981]"
-                    : current
-                    ? "text-[#F59E0B]"
-                    : "text-zinc-400"
-                )}
-              >
-                {step.label}
-              </div>
-              <div className="text-[11px] text-zinc-500 mt-0.5">{step.desc}</div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      </TerminalCard>
 
-      {/* Disputed / Refunded Banner */}
+      {/* Disputed / Refunded Notice */}
       {escrow.state === "DISPUTED" && (
-        <div className="rounded-lg bg-[#EF4444]/10 border border-[#EF4444]/40 p-4 flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-[#F87171] shrink-0 mt-0.5" />
+        <div className="rounded-2xl bg-amber-50 border border-amber-200 p-5 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
           <div>
-            <div className="font-mono text-xs font-bold text-[#F87171] uppercase">
-              ESCROW FROZEN — IN CONCIERGE DISPUTE QUEUE
+            <div className="text-sm font-semibold text-amber-900">
+              Transfer paused for support review
             </div>
-            <p className="text-xs text-zinc-300 mt-1">
-              Reason: {escrow.disputeReason || "Escalated by counterparty."} Funds remain safely locked until Cust0dy Ops resolves in the Admin Console.
+            <p className="text-xs text-amber-800 mt-1">
+              {escrow.disputeReason || "Our team is reviewing this transfer. Your payment remains 100% protected."}
             </p>
           </div>
         </div>
       )}
 
       {escrow.state === "REFUNDED" && (
-        <div className="rounded-lg bg-[#18181C] border border-[#27272A] p-4 flex items-start gap-3">
-          <RefreshCcw className="w-5 h-5 text-zinc-400 shrink-0 mt-0.5" />
+        <div className="rounded-2xl bg-zinc-100 border border-zinc-200 p-5 flex items-start gap-3">
+          <RefreshCcw className="w-5 h-5 text-slate-600 shrink-0 mt-0.5" />
           <div>
-            <div className="font-mono text-xs font-bold text-zinc-200 uppercase">
-              ESCROW CANCELLED — 100% BUYER REFUND EXECUTED
+            <div className="text-sm font-semibold text-slate-900">
+              Order cancelled — 100% refunded
             </div>
-            <p className="text-xs text-zinc-400 mt-1">
-              {escrow.disputeReason || "24h SLA expired. Full deposit returned to buyer and asset unlocked."}
+            <p className="text-xs text-slate-600 mt-1">
+              The full payment of {formatCurrency(escrow.totalBuyerDeposit, escrow.currency)} was returned to the buyer.
             </p>
           </div>
         </div>
       )}
 
-      {/* Main 12-Col Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        {/* Left 8 Cols: Active State Execution Vault */}
+      {/* Main Action Card + Summary */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         <div className="lg:col-span-8 space-y-5">
-          {/* Active SLA / Inspection Countdown */}
+          {/* STEP 1: Waiting for Seller Handover */}
           {escrow.state === "FUNDS_LOCKED" && (
-            <CountdownTimer
-              deadlineIso={escrow.slaDeadlineIso}
-              label="24H SELLER HANDOVER SLA REMAINING"
-              tone="amber"
-            />
-          )}
-          {escrow.state === "VERIFICATION_RELEASE" && escrow.inspectionDeadlineIso && (
-            <CountdownTimer
-              deadlineIso={escrow.inspectionDeadlineIso}
-              label="12H BUYER INSPECTION WINDOW"
-              tone="emerald"
-            />
-          )}
-
-          {/* Multi-Asset Swap Dual-Vault Banner */}
-          {escrow.type === "SWAP" && (
-            <TerminalCard className="p-4 border-[#3B82F6]/35 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs font-semibold text-[#60A5FA] font-mono">
-                  <ArrowLeftRight className="w-4 h-4" />
-                  DUAL-CUSTODY ATOMIC SWAP GUARD
-                </div>
-                <Badge variant="blue">NO EARLY KEY REVEAL</Badge>
-              </div>
-              <p className="text-xs text-zinc-400">
-                Both counterparties must deposit their transfer keys into Cust0dy&apos;s AES-256 vault before either side sees the counterparty&apos;s credentials.
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div className="rounded bg-[#09090B] border border-[#27272A] p-3">
-                  <div className="font-mono text-[10px] text-zinc-500">SELLER ASSET ({escrow.sellerAlias})</div>
-                  <div className="font-mono font-semibold text-zinc-100 mt-0.5">{escrow.assetName}</div>
-                  <div className="mt-1.5">
-                    {escrow.hasEncryptedEpp ? (
-                      <Badge variant="emerald">VAULT KEY DEPOSITED</Badge>
-                    ) : (
-                      <Badge variant="amber">AWAITING SELLER KEY</Badge>
-                    )}
-                  </div>
-                </div>
-                <div className="rounded bg-[#09090B] border border-[#27272A] p-3">
-                  <div className="font-mono text-[10px] text-zinc-500">BUYER OFFERED ({escrow.buyerAlias})</div>
-                  <div className="font-mono font-semibold text-zinc-100 mt-0.5">
-                    {escrow.swapOfferedAssetNames.join(" + ")}{" "}
-                    {escrow.swapCashTopUp ? `+ ${formatCurrency(escrow.swapCashTopUp, escrow.currency)}` : ""}
-                  </div>
-                  <div className="mt-1.5">
-                    {escrow.buyerSwapKeyDeposited ? (
-                      <Badge variant="emerald">VAULT KEY DEPOSITED</Badge>
-                    ) : (
-                      <Badge variant="amber">AWAITING BUYER KEY</Badge>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {!escrow.buyerSwapKeyDeposited &&
-                (escrow.state === "FUNDS_LOCKED" || escrow.state === "CUSTODY_HANDOVER") && (
-                  <div className="flex gap-2 pt-1">
-                    <Input
-                      value={buyerSwapKeyInput}
-                      onChange={(e) => setBuyerSwapKeyInput(e.target.value)}
-                      placeholder="Buyer Desk: Enter EPP / Transfer Key for offered swap asset..."
-                      className="font-mono text-xs"
-                    />
-                    <Button
-                      variant="primary"
-                      disabled={isPending || !buyerSwapKeyInput.trim()}
-                      onClick={() =>
-                        runAction(
-                          () => submitBuyerSwapKeyAction(escrow.id, buyerSwapKeyInput),
-                          "Buyer swap transfer key encrypted (AES-256-GCM) & vaulted."
-                        )
-                      }
-                    >
-                      Deposit Swap Key
-                    </Button>
-                  </div>
-                )}
-            </TerminalCard>
-          )}
-
-          {/* STATE 1: FUNDS_LOCKED -> Seller Custody Handover */}
-          {escrow.state === "FUNDS_LOCKED" && (
-            <TerminalCard className="p-5 space-y-4">
-              <div className="flex items-center justify-between border-b border-[#27272A] pb-3">
-                <div>
-                  <h2 className="text-sm font-semibold text-zinc-100 flex items-center gap-2">
-                    <KeyRound className="w-4 h-4 text-[#F59E0B]" />
-                    State 1 → 2: Seller Custody Handover Vault
-                  </h2>
-                  <p className="text-xs text-zinc-400 mt-0.5">
-                    {isDomain
-                      ? `Unlock ${escrow.assetName} at ${escrow.registrarOrPlatform} and deposit the EPP Authorization Code into Cust0dy's AES-256-GCM vault.`
-                      : `Bind ${escrow.assetName} to Cust0dy's clean-room burner email and disable personal 2FA so platform 2FA locks the handle.`}
-                  </p>
-                </div>
-                <Badge variant="amber" className="font-mono">
-                  VIEWING AS {viewerRole}
+            <TerminalCard className="p-6 space-y-4">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <h2 className="text-lg font-semibold text-slate-900">
+                  Next step: Seller starts the transfer
+                </h2>
+                <Badge variant="amber">
+                  <Clock className="w-3 h-3" />
+                  24h protection window
                 </Badge>
               </div>
 
+              <p className="text-sm text-slate-600 leading-relaxed">
+                {isDomain
+                  ? `The buyer's payment is safely locked. Once the seller submits the transfer code for ${escrow.assetName}, Cust0dy will verify it automatically.`
+                  : `The buyer's payment is safely locked. The seller needs to move ${escrow.assetName} to our secure holding email below so we can verify control.`}
+              </p>
+
               {viewerRole === "BUYER" && (
-                <div className="rounded-md bg-[#09090B] border border-[#27272A] p-3 text-xs text-zinc-400">
-                  Your funds (<span className="font-mono text-zinc-100">{formatCurrency(escrow.totalBuyerDeposit, escrow.currency)}</span>) are locked. Waiting for Seller Desk{" "}
-                  <span className="font-mono text-zinc-200">{escrow.sellerAlias}</span> to submit transfer keys.{" "}
-                  <span className="text-[#60A5FA]">
-                    (Tip: Switch to VAULT_9C1E [SELLER] in the top-right header to execute the seller handover!)
-                  </span>
+                <div className="rounded-xl bg-blue-50 border border-blue-200 p-3.5 text-xs text-blue-800">
+                  You&apos;re viewing as <strong>Buyer</strong>. Want to test the seller&apos;s side? Switch to <strong>Seller</strong> using the pill in the top-right corner.
                 </div>
               )}
 
               {isDomain ? (
-                <div className="space-y-3">
-                  <div className="space-y-1.5">
-                    <label className="font-mono text-[11px] uppercase text-zinc-400">
-                      Registrar EPP Authorization Code (Encrypted via AES-256-GCM on Submit)
-                    </label>
-                    <Input
-                      value={eppInput}
-                      onChange={(e) => setEppInput(e.target.value)}
-                      placeholder="e.g., EPP-QNT-8841-X9K2-M7"
-                      className="font-mono text-sm"
-                    />
-                  </div>
+                <div className="space-y-3 pt-1">
+                  <label className="text-xs font-medium text-slate-700 block">
+                    Domain Transfer Code (from {escrow.registrarOrPlatform})
+                  </label>
+                  <Input
+                    value={eppInput}
+                    onChange={(e) => setEppInput(e.target.value)}
+                    placeholder="Paste transfer code (e.g. EPP-QNT-8841-X9K2)"
+                  />
                   <Button
-                    variant="amber"
+                    variant="primary"
                     size="lg"
                     className="w-full"
                     disabled={isPending || !eppInput.trim()}
                     onClick={() =>
                       runAction(
                         () => submitDomainEppAction({ escrowId: escrow.id, eppCode: eppInput }),
-                        "EPP Authorization Code encrypted with AES-256-GCM and sealed in Cust0dy vault."
+                        "Transfer code received and encrypted safely!"
                       )
                     }
                   >
-                    <Lock className="w-4 h-4" />
-                    {isPending ? "Encrypting & Vaulting EPP..." : "Encrypt & Deposit EPP Code into Vault"}
+                    {isPending ? "Securing Transfer Code..." : "Submit Transfer Code"}
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  <div className="rounded-md bg-[#09090B] border border-[#27272A] p-3.5 space-y-2">
-                    <div className="flex items-center gap-2 text-xs font-mono text-zinc-400">
-                      <Mail className="w-3.5 h-3.5 text-[#3B82F6]" />
-                      CLEAN-ROOM BURNER VAULT EMAIL
-                    </div>
-                    <div className="font-mono text-sm font-bold text-[#10B981]">
+                <div className="space-y-3 pt-1">
+                  <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-4 space-y-1">
+                    <div className="text-xs font-medium text-slate-500">Secure holding email</div>
+                    <div className="font-mono text-sm font-semibold text-slate-900">
                       {escrow.burnerVaultEmail || "escrow-vault@vault.cust0dy.io"}
                     </div>
-                    <ol className="text-xs text-zinc-400 list-decimal list-inside space-y-1 pt-1">
-                      <li>Change {escrow.assetName} account recovery email to the clean-room address above.</li>
-                      <li>Disable personal SMS/TOTP 2FA on {escrow.registrarOrPlatform}.</li>
-                      <li>Confirm below so Cust0dy locks hardware-backed platform 2FA over the handle.</li>
-                    </ol>
                   </div>
                   <Button
-                    variant="amber"
+                    variant="primary"
                     size="lg"
                     className="w-full"
                     disabled={isPending}
                     onClick={() =>
                       runAction(
                         () => submitHandleBurnerAction(escrow.id),
-                        "Clean-room burner email verified and Cust0dy platform 2FA engaged."
+                        "Account handover received and secured!"
                       )
                     }
                   >
-                    <Lock className="w-4 h-4" />
-                    Confirm Burner Email Handover & Lock Platform 2FA
+                    Confirm Account Handover
                   </Button>
+                </div>
+              )}
+
+              {escrow.type === "SWAP" && !escrow.buyerSwapKeyDeposited && (
+                <div className="pt-4 border-t border-zinc-100 space-y-2.5">
+                  <div className="text-xs font-semibold text-slate-800">
+                    Trade partner handover ({escrow.swapOfferedAssetNames.join(" + ")})
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      value={buyerSwapKeyInput}
+                      onChange={(e) => setBuyerSwapKeyInput(e.target.value)}
+                      placeholder="Paste transfer code for your traded asset..."
+                    />
+                    <Button
+                      variant="secondary"
+                      disabled={isPending || !buyerSwapKeyInput.trim()}
+                      onClick={() =>
+                        runAction(
+                          () => submitBuyerSwapKeyAction(escrow.id, buyerSwapKeyInput),
+                          "Your trade transfer code is safely stored!"
+                        )
+                      }
+                    >
+                      Save
+                    </Button>
+                  </div>
                 </div>
               )}
             </TerminalCard>
           )}
 
-          {/* STATE 2: CUSTODY_HANDOVER -> Automated RDAP / Vault Verification */}
+          {/* STEP 2A: Cust0dy Verifying Transfer */}
           {escrow.state === "CUSTODY_HANDOVER" && (
-            <TerminalCard className="p-5 space-y-4">
-              <div className="flex items-center justify-between border-b border-[#27272A] pb-3">
-                <div>
-                  <h2 className="text-sm font-semibold text-zinc-100 flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-[#10B981]" />
-                    State 2 → 3: Custody Vault Sealed — Ready for Verification
-                  </h2>
-                  <p className="text-xs text-zinc-400 mt-0.5">
-                    Transfer credentials are encrypted inside Cust0dy&apos;s AES-256-GCM vault. Trigger automated RDAP/WHOIS verification to open the 12-hour buyer inspection window.
-                  </p>
-                </div>
-                <Badge variant="emerald" className="font-mono">AES-256-GCM SEALED</Badge>
+            <TerminalCard className="p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-slate-900">
+                  Transfer code received — ready to verify
+                </h2>
+                <Badge variant="emerald">Secured</Badge>
               </div>
-
-              {escrow.eppCipherPreview && (
-                <div className="rounded bg-[#09090B] border border-[#27272A] p-3 font-mono text-xs text-zinc-400 flex items-center justify-between">
-                  <span>CIPHERTEXT SEAL: {escrow.eppCipherPreview}••••••</span>
-                  <span className="text-[#10B981]">LOCKED UNTIL SETTLEMENT</span>
-                </div>
-              )}
-
+              <p className="text-sm text-slate-600">
+                The seller has uploaded the transfer credentials for <strong>{escrow.assetName}</strong>. Run our instant verification check to unlock the buyer&apos;s final confirmation step.
+              </p>
               <Button
                 variant="primary"
                 size="lg"
@@ -415,55 +316,33 @@ export function EscrowDealRoomClient({
                 onClick={() =>
                   runAction(
                     () => runRdapAndOpenInspectionAction(escrow.id),
-                    "RDAP/Vault verification passed. 12-hour buyer inspection window opened!"
+                    "Verification passed! Buyer can now confirm receipt."
                   )
                 }
               >
                 <ShieldCheck className="w-4 h-4" />
-                {isPending
-                  ? "Running Automated RDAP / Custody Check..."
-                  : "Run Automated RDAP Check & Open 12h Inspection Window"}
+                {isPending ? "Checking Transfer Readiness..." : "Verify Transfer & Notify Buyer"}
               </Button>
             </TerminalCard>
           )}
 
-          {/* STATE 3: VERIFICATION_RELEASE -> Buyer Confirmation & Atomic Settlement */}
+          {/* STEP 2B: Buyer Confirms Receipt */}
           {escrow.state === "VERIFICATION_RELEASE" && (
-            <TerminalCard className="p-5 space-y-4 border-[#10B981]/35">
-              <div className="flex items-center justify-between border-b border-[#27272A] pb-3">
-                <div>
-                  <h2 className="text-sm font-semibold text-zinc-100 flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-[#10B981]" />
-                    State 3: Atomic Verification & Settlement Release
-                  </h2>
-                  <p className="text-xs text-zinc-400 mt-0.5">
-                    Cust0dy verified asset custody. Confirm access to atomically unlock credentials for the buyer, pay out the seller, and settle the 7.5% platform fee.
-                  </p>
-                </div>
-                <Badge variant="emerald" className="font-mono">
-                  {isDomain ? "RDAP PASSED" : "2FA VAULT LOCKED"}
-                </Badge>
+            <TerminalCard className="p-6 space-y-4 border-emerald-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-slate-900">
+                  Final step: Confirm &amp; complete transfer
+                </h2>
+                <Badge variant="emerald">Verified Ready</Badge>
               </div>
-
-              {escrow.burnerVaultEmail && (
-                <div className="rounded bg-[#09090B] border border-[#27272A] p-3 text-xs space-y-1">
-                  <div className="font-mono text-[10px] text-zinc-500">VERIFIED BURNER CUSTODY</div>
-                  <div className="font-mono text-zinc-100">{escrow.burnerVaultEmail}</div>
-                  <div className="text-[#10B981] text-[11px]">
-                    Platform 2FA locked • Zero personal recovery emails attached
-                  </div>
-                </div>
-              )}
-
+              <p className="text-sm text-slate-600 leading-relaxed">
+                Cust0dy verified that <strong>{escrow.assetName}</strong> is unlocked and ready for you. Click below to receive your transfer credentials and release payment to the seller.
+              </p>
               {viewerRole === "SELLER" && (
-                <div className="rounded bg-[#09090B] border border-[#27272A] p-3 text-xs text-zinc-400">
-                  Awaiting Buyer Desk <span className="font-mono text-zinc-200">{escrow.buyerAlias}</span> to confirm receipt.{" "}
-                  <span className="text-[#60A5FA]">
-                    (Switch to DESK_7F2A [BUYER] in the header to execute atomic settlement!)
-                  </span>
+                <div className="rounded-xl bg-blue-50 border border-blue-200 p-3.5 text-xs text-blue-800">
+                  Waiting for the buyer to confirm. Switch to <strong>Buyer</strong> in the top-right pill to test completing this transfer.
                 </div>
               )}
-
               <Button
                 variant="emerald"
                 size="lg"
@@ -472,64 +351,45 @@ export function EscrowDealRoomClient({
                 onClick={() =>
                   runAction(
                     () => confirmSettlementAction(escrow.id),
-                    "Atomic settlement executed! Credentials released & 7.5% fee logged to Revenue Ledger."
+                    "Transfer complete! Your credentials are now unlocked below."
                   )
                 }
               >
                 <CheckCircle2 className="w-4 h-4" />
-                {isPending
-                  ? "Executing Atomic Settlement..."
-                  : `Confirm Receipt & Release ${formatCurrency(escrow.sellerPayout, escrow.currency)} Payout`}
+                {isPending ? "Completing Transfer..." : "Confirm & Complete Transfer"}
               </Button>
             </TerminalCard>
           )}
 
-          {/* STATE 4: SETTLED -> Decrypted Transfer Vault Release */}
+          {/* STEP 3: Complete */}
           {escrow.state === "SETTLED" && (
-            <TerminalCard className="p-5 space-y-4 border-[#10B981]/40">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-[#10B981] font-mono text-sm font-bold">
-                  <CheckCircle2 className="w-5 h-5" />
-                  ATOMIC SETTLEMENT COMPLETE
-                </div>
-                <Badge variant="emerald" className="font-mono">LEDGER COLLECTED</Badge>
+            <TerminalCard className="p-6 space-y-4 border-emerald-200 bg-emerald-50/30">
+              <div className="flex items-center gap-2 text-emerald-700 font-semibold text-base">
+                <CheckCircle2 className="w-5 h-5" />
+                Transfer complete!
               </div>
-              <p className="text-xs text-zinc-400">
-                Ownership of <span className="font-mono text-zinc-100">{escrow.assetName}</span> has transferred to{" "}
-                <span className="font-mono text-zinc-100">{escrow.buyerAlias}</span>, payout of{" "}
-                <span className="font-mono text-[#10B981]">{formatCurrency(escrow.sellerPayout, escrow.currency)}</span> was released to{" "}
-                <span className="font-mono text-zinc-100">{escrow.sellerAlias}</span>, and{" "}
-                <span className="font-mono text-zinc-100">{formatCurrency(escrow.totalPlatformFee, escrow.currency)}</span> (7.5%) was booked to the Platform Revenue Ledger.
+              <p className="text-sm text-slate-600">
+                <strong>{escrow.assetName}</strong> is now yours and the seller has been paid{" "}
+                <strong>{formatCurrency(escrow.sellerPayout, escrow.currency)}</strong>.
               </p>
 
               {escrow.decryptedCredential && (
-                <div className="rounded-md bg-[#09090B] border border-[#10B981]/30 p-3.5 space-y-2">
+                <div className="rounded-xl bg-white border border-emerald-200 p-4 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-[10px] uppercase text-[#10B981]">
-                      DECRYPTED TRANSFER CREDENTIAL (AUTHORIZED BUYER VAULT)
+                    <span className="text-xs font-medium text-emerald-700">
+                      Your Transfer Code / Access Key
                     </span>
                     <button
                       type="button"
                       onClick={() => setRevealSecret((s) => !s)}
-                      className="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-100 cursor-pointer"
+                      className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-900 cursor-pointer"
                     >
                       {revealSecret ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                      {revealSecret ? "Mask" : "Reveal"}
+                      {revealSecret ? "Hide" : "Reveal"}
                     </button>
                   </div>
-                  <div className="font-mono text-sm font-bold text-zinc-50 tracking-wide">
-                    {revealSecret ? escrow.decryptedCredential : "••••••••••••••••••••••••"}
-                  </div>
-                </div>
-              )}
-
-              {escrow.decryptedBuyerSwapKey && (
-                <div className="rounded-md bg-[#09090B] border border-[#3B82F6]/30 p-3.5 space-y-1">
-                  <div className="font-mono text-[10px] uppercase text-[#60A5FA]">
-                    DECRYPTED SWAP COUNTERPARTY KEY (RELEASED TO SELLER)
-                  </div>
-                  <div className="font-mono text-sm font-bold text-zinc-100">
-                    {revealSecret ? escrow.decryptedBuyerSwapKey : "••••••••••••••••••••••••"}
+                  <div className="font-mono text-sm font-bold text-slate-900">
+                    {revealSecret ? escrow.decryptedCredential : "••••••••••••••••••••••"}
                   </div>
                 </div>
               )}
@@ -539,132 +399,112 @@ export function EscrowDealRoomClient({
           {feedback && (
             <div
               className={cn(
-                "rounded-md p-3 text-xs border",
+                "rounded-xl p-3.5 text-xs font-medium border",
                 feedback.type === "ok"
-                  ? "bg-[#10B981]/10 border-[#10B981]/30 text-[#10B981]"
-                  : "bg-[#EF4444]/10 border-[#EF4444]/30 text-[#F87171]"
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                  : "bg-red-50 border-red-200 text-red-700"
               )}
             >
               {feedback.msg}
             </div>
           )}
 
-          {/* Immutable Escrow Audit Log */}
-          <TerminalCard className="p-4 space-y-3">
-            <div className="flex items-center justify-between border-b border-[#27272A] pb-2.5">
-              <div className="flex items-center gap-2 font-mono text-xs font-semibold text-zinc-200">
-                <FileCode2 className="w-4 h-4 text-[#3B82F6]" />
-                IMMUTABLE ESCROW AUDIT LOG ({auditLogs.length})
+          {/* Collapsible Security & Technical Details Drawer */}
+          <TerminalCard className="overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowSecurityDrawer((s) => !s)}
+              className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-zinc-50 transition-colors cursor-pointer"
+            >
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                Security &amp; Audit Details ({auditLogs.length} events)
               </div>
-              <span className="font-mono text-[10px] text-zinc-500">TAMPER-PROOF LEDGER</span>
-            </div>
-            <div className="space-y-2.5">
-              {auditLogs.map((log) => (
-                <div
-                  key={log.id}
-                  className="rounded bg-[#09090B] border border-[#27272A] p-3 space-y-1"
-                >
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant={
-                          log.action === "SETTLED" || log.action === "RDAP_VERIFIED"
-                            ? "emerald"
-                            : log.action === "DISPUTED" || log.action === "AUTO_REFUNDED"
-                            ? "danger"
-                            : "blue"
-                        }
-                        className="font-mono text-[10px]"
-                      >
-                        {log.action}
-                      </Badge>
-                      <span className="font-mono text-[10px] text-zinc-500">
-                        ACTOR: {log.actorRole}
-                      </span>
-                    </div>
-                    <span className="font-mono text-[10px] text-zinc-500">
-                      {new Date(log.createdAtIso).toLocaleString()}
+              <ChevronDown
+                className={cn(
+                  "w-4 h-4 text-slate-400 transition-transform",
+                  showSecurityDrawer && "rotate-180"
+                )}
+              />
+            </button>
+
+            {showSecurityDrawer && (
+              <div className="px-5 pb-5 pt-2 border-t border-zinc-100 space-y-3">
+                <div className="grid grid-cols-2 gap-2 text-xs bg-zinc-50 rounded-xl p-3 border border-zinc-200/70">
+                  <div>
+                    <span className="text-slate-400 block">Order Reference</span>
+                    <span className="font-mono font-medium text-slate-800">{escrow.tradeCode}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block">Vault Encryption</span>
+                    <span className="font-mono font-medium text-slate-800">
+                      {escrow.eppCipherPreview ? `AES-256 (${escrow.eppCipherPreview}…)` : "AES-256-GCM Ready"}
                     </span>
                   </div>
-                  <p className="text-xs text-zinc-300">{log.details}</p>
                 </div>
-              ))}
-            </div>
+                <div className="space-y-2">
+                  {auditLogs.map((log) => (
+                    <div
+                      key={log.id}
+                      className="rounded-xl bg-zinc-50 border border-zinc-200/70 p-3 text-xs space-y-1"
+                    >
+                      <div className="flex items-center justify-between text-[11px] text-slate-400">
+                        <span className="font-mono font-semibold text-slate-700">
+                          {log.action}
+                        </span>
+                        <span>{new Date(log.createdAtIso).toLocaleString()}</span>
+                      </div>
+                      <p className="text-slate-600">{log.details}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </TerminalCard>
         </div>
 
-        {/* Right 4 Cols: Blind Financial Summary + Dispute / Auto-Refund Guard */}
+        {/* Right Sidebar: Simple Order Summary & Help */}
         <div className="lg:col-span-4 space-y-4">
-          <TerminalCard className="p-4 space-y-3">
-            <div className="font-mono text-[11px] uppercase tracking-wider text-zinc-400 border-b border-[#27272A] pb-2">
-              Escrow Ledger Breakdown
+          <TerminalCard className="p-5 space-y-3 text-sm">
+            <div className="font-semibold text-slate-900 border-b border-zinc-100 pb-2.5">
+              Order Summary
             </div>
             <div className="space-y-2 text-xs">
               <div className="flex justify-between">
-                <span className="text-zinc-500">Trade Code</span>
-                <span className="font-mono font-semibold text-zinc-100">{escrow.tradeCode}</span>
+                <span className="text-slate-500">Item</span>
+                <span className="font-semibold text-slate-900">{escrow.assetName}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-zinc-500">Buyer Desk (Masked)</span>
-                <span className="font-mono text-zinc-200">{escrow.buyerAlias}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-zinc-500">Seller Desk (Masked)</span>
-                <span className="font-mono text-zinc-200">{escrow.sellerAlias}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-zinc-500">Payment Rail</span>
-                <span className="font-mono text-zinc-300">{escrow.paymentMethod}</span>
-              </div>
-              <div className="border-t border-[#27272A] pt-2 flex justify-between">
-                <span className="text-zinc-400">Asset Price</span>
-                <span className="font-mono font-semibold text-zinc-100">
+                <span className="text-slate-500">Item Price</span>
+                <span className="font-medium text-slate-800">
                   {formatCurrency(escrow.assetPrice, escrow.currency)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-zinc-400">Buyer Protection (2.5%)</span>
-                <span className="font-mono text-zinc-300">
-                  +{formatCurrency(escrow.buyerFee, escrow.currency)}
+                <span className="text-slate-500">Buyer Protection (2.5%)</span>
+                <span className="text-slate-700">
+                  {formatCurrency(escrow.buyerFee, escrow.currency)}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-zinc-400">Seller Fee (5.0%)</span>
-                <span className="font-mono text-zinc-300">
-                  -{formatCurrency(escrow.sellerFee, escrow.currency)}
-                </span>
+              <div className="border-t border-zinc-100 pt-2 flex justify-between font-semibold text-slate-900">
+                <span>Total Protected</span>
+                <span>{formatCurrency(escrow.totalBuyerDeposit, escrow.currency)}</span>
               </div>
-              <div className="border-t border-[#27272A] pt-2 flex justify-between">
-                <span className="text-zinc-200 font-medium">Buyer Locked Deposit</span>
-                <span className="font-mono font-bold text-[#F59E0B]">
-                  {formatCurrency(escrow.totalBuyerDeposit, escrow.currency)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-zinc-200 font-medium">Net Seller Payout</span>
-                <span className="font-mono font-bold text-[#10B981]">
+              <div className="flex justify-between text-slate-500 pt-1">
+                <span>Seller Payout (after 5% fee)</span>
+                <span className="font-medium text-emerald-700">
                   {formatCurrency(escrow.sellerPayout, escrow.currency)}
-                </span>
-              </div>
-              <div className="flex justify-between text-[11px]">
-                <span className="text-zinc-500">Total Platform Take (7.5%)</span>
-                <span className="font-mono text-zinc-400">
-                  {formatCurrency(escrow.totalPlatformFee, escrow.currency)}
                 </span>
               </div>
             </div>
           </TerminalCard>
 
-          {/* Dispute & Auto-Refund Guard */}
           {!["SETTLED", "REFUNDED"].includes(escrow.state) && (
-            <TerminalCard className="p-4 space-y-3">
-              <div className="font-mono text-[11px] uppercase tracking-wider text-zinc-400">
-                Dispute & Auto-Refund Guard
-              </div>
-              <p className="text-[11px] text-zinc-500 leading-relaxed">
-                If seller fails to deposit valid transfer keys before the 24h SLA reaches <span className="font-mono text-zinc-300">00:00:00</span>, Cust0dy auto-cancels and refunds the buyer 100%.
+            <TerminalCard className="p-5 space-y-3">
+              <div className="text-xs font-semibold text-slate-900">Need help?</div>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                If the seller doesn&apos;t complete the transfer within 24 hours, you get an automatic 100% refund.
               </p>
-
               {!showDisputeBox ? (
                 <div className="space-y-2">
                   <Button
@@ -674,8 +514,7 @@ export function EscrowDealRoomClient({
                     className="w-full"
                     onClick={() => setShowDisputeBox(true)}
                   >
-                    <AlertTriangle className="w-3.5 h-3.5 text-[#F59E0B]" />
-                    Open Concierge Dispute
+                    Report an Issue
                   </Button>
                   {escrow.state === "FUNDS_LOCKED" && (
                     <Button
@@ -687,12 +526,11 @@ export function EscrowDealRoomClient({
                       onClick={() =>
                         runAction(
                           () => triggerAutoRefundAction(escrow.id),
-                          "24h SLA expiry simulated: escrow auto-cancelled and 100% refunded to buyer."
+                          "Order cancelled and 100% refunded to buyer."
                         )
                       }
                     >
-                      <RefreshCcw className="w-3.5 h-3.5" />
-                      Simulate 24h SLA Expiry (Auto-Refund)
+                      Simulate 24h Auto-Refund
                     </Button>
                   )}
                 </div>
@@ -701,8 +539,7 @@ export function EscrowDealRoomClient({
                   <Input
                     value={disputeInput}
                     onChange={(e) => setDisputeInput(e.target.value)}
-                    placeholder="Describe transfer issue for Admin Ops..."
-                    className="text-xs"
+                    placeholder="Briefly describe the issue..."
                   />
                   <div className="flex gap-2">
                     <Button
@@ -714,11 +551,11 @@ export function EscrowDealRoomClient({
                       onClick={() =>
                         runAction(
                           () => openDisputeAction(escrow.id, disputeInput),
-                          "Escrow frozen and escalated to Cust0dy Admin Ops Dispute Queue."
+                          "Transfer paused and sent to Cust0dy support."
                         )
                       }
                     >
-                      Freeze & Escalate
+                      Pause &amp; Notify Support
                     </Button>
                     <Button
                       type="button"

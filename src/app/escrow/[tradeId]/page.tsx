@@ -1,11 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Lock } from "lucide-react";
+import { ArrowLeft, ShieldCheck } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { decryptSecret } from "@/lib/crypto";
 import { parseStringArray } from "@/lib/utils";
-import { Badge } from "@/components/ui/primitives";
 import {
   EscrowDealRoomClient,
   type EscrowDealData,
@@ -45,8 +44,6 @@ export default async function EscrowDealRoomPage({
       ? "SELLER"
       : "OBSERVER";
 
-  // Tamper-proof server-side decryption: ONLY decrypt credentials after atomic settlement
-  // and ONLY for authorized Buyer / Seller / Admin desks.
   let decryptedCredential: string | null = null;
   if (
     escrow.state === "SETTLED" &&
@@ -121,7 +118,7 @@ export default async function EscrowDealRoomPage({
     slaDeadlineIso: escrow.slaDeadline.toISOString(),
     inspectionDeadlineIso: escrow.inspectionDeadline?.toISOString() ?? null,
     hasEncryptedEpp: Boolean(escrow.encryptedEppCode),
-    eppCipherPreview: escrow.encryptedEppCode ? escrow.encryptedEppCode.slice(0, 16).toUpperCase() : null,
+    eppCipherPreview: escrow.encryptedEppCode ? escrow.encryptedEppCode.slice(0, 14).toUpperCase() : null,
     burnerVaultEmail: escrow.burnerVaultEmail,
     burner2faLocked: escrow.burner2faLocked,
     rdapVerified: escrow.rdapVerified,
@@ -143,42 +140,23 @@ export default async function EscrowDealRoomPage({
   }));
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-100"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          Back to Portfolio & Escrows
-        </Link>
-        <div className="font-mono text-[11px] text-zinc-500">
-          ANTI-CIRCUMVENTION VAULT • DIRECT CHAT DISABLED
-        </div>
-      </div>
+    <div className="space-y-6 max-w-4xl mx-auto">
+      <Link
+        href="/dashboard"
+        className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900"
+      >
+        <ArrowLeft className="w-3.5 h-3.5" />
+        Back to My Orders
+      </Link>
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#27272A] pb-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <Lock className="w-5 h-5 text-[#F59E0B]" />
-            <h1 className="font-mono text-2xl font-bold text-zinc-50">
-              {escrow.tradeCode} — {escrow.asset.name}
-            </h1>
-            <Badge
-              variant={
-                escrow.state === "SETTLED"
-                  ? "emerald"
-                  : escrow.state === "DISPUTED" || escrow.state === "REFUNDED"
-                  ? "danger"
-                  : "amber"
-              }
-              className="font-mono"
-            >
-              {escrow.state}
-            </Badge>
-          </div>
-          <p className="text-xs text-zinc-400">
-            Custody Hook Atomic Deal Room • {escrow.type} • {escrow.asset.registrarOrPlatform}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">
+            Safe Transfer: {escrow.asset.name}
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+            Protected by Cust0dy Escrow • {escrow.asset.registrarOrPlatform}
           </p>
         </div>
       </div>

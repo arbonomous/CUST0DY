@@ -3,14 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  Shield,
-  CheckCircle2,
-  RefreshCcw,
-  FileCode2,
-  X,
-  ExternalLink,
-} from "lucide-react";
+import { CheckCircle2, RefreshCcw, FileText, X } from "lucide-react";
 import { Badge, Button, TerminalCard } from "@/components/ui/primitives";
 import { formatCurrency } from "@/lib/utils";
 import {
@@ -64,34 +57,23 @@ export function AdminOpsClient({
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [inspectedEscrow, setInspectedEscrow] = useState<AdminEscrowRow | null>(null);
+  const [inspected, setInspected] = useState<AdminEscrowRow | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
-  function handleApproveTransfer(escrowId: string, tradeCode: string) {
+  function handleApprove(escrowId: string, code: string) {
     setMsg(null);
     startTransition(async () => {
       const res = await confirmSettlementAction(escrowId);
-      if (!res.ok) {
-        setMsg(`Override blocked: ${res.error}`);
-        return;
-      }
-      setMsg(`Concierge override settled ${tradeCode}. Payout released & 7.5% fee collected.`);
+      setMsg(res.ok ? `Approved & settled ${code}.` : `Error: ${res.error}`);
       router.refresh();
     });
   }
 
-  function handleForceRefund(escrowId: string, tradeCode: string) {
+  function handleRefund(escrowId: string, code: string) {
     setMsg(null);
     startTransition(async () => {
-      const res = await triggerAutoRefundAction(
-        escrowId,
-        "Admin Ops manual concierge refund override."
-      );
-      if (!res.ok) {
-        setMsg(`Refund failed: ${res.error}`);
-        return;
-      }
-      setMsg(`Concierge refund executed for ${tradeCode}. Buyer refunded 100%.`);
+      const res = await triggerAutoRefundAction(escrowId, "Admin concierge refund.");
+      setMsg(res.ok ? `Refunded ${code} 100% to buyer.` : `Error: ${res.error}`);
       router.refresh();
     });
   }
@@ -99,108 +81,64 @@ export function AdminOpsClient({
   return (
     <div className="space-y-6">
       {msg && (
-        <div className="rounded-md bg-[#3B82F6]/10 border border-[#3B82F6]/30 p-3 text-xs text-[#60A5FA] font-mono">
+        <div className="rounded-xl bg-blue-50 border border-blue-200 p-3.5 text-xs font-medium text-blue-800">
           {msg}
         </div>
       )}
 
-      {/* Escrow Operations & Dispute Resolution Table */}
       <TerminalCard className="overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#27272A] flex items-center justify-between">
-          <div className="flex items-center gap-2 font-mono text-xs font-semibold text-zinc-200">
-            <Shield className="w-4 h-4 text-[#F59E0B]" />
-            ESCROW CUSTODY & CONCIERGE OVERRIDE QUEUE
-          </div>
-          <span className="font-mono text-[10px] text-zinc-500">
-            SWITCH TO OPS_0001 [ADMIN] FOR FULL OVERRIDE AUTHORITY
-          </span>
+        <div className="px-5 py-4 border-b border-zinc-100 font-semibold text-sm text-slate-900">
+          Active Transfers &amp; Support Overrides
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-[#27272A] bg-[#0D0D10] font-mono text-[10px] uppercase text-zinc-500">
-                <th className="py-2.5 px-4">Trade / Asset</th>
-                <th className="py-2.5 px-3">Counterparties</th>
-                <th className="py-2.5 px-3 text-right">GMV</th>
-                <th className="py-2.5 px-3 text-right">7.5% Fee</th>
-                <th className="py-2.5 px-3">State</th>
-                <th className="py-2.5 px-4 text-right">Concierge Controls</th>
+              <tr className="border-b border-zinc-100 bg-zinc-50 text-slate-500">
+                <th className="py-3 px-5 font-medium">Item</th>
+                <th className="py-3 px-4 font-medium text-right">Sale Value</th>
+                <th className="py-3 px-4 font-medium text-right">Fee (7.5%)</th>
+                <th className="py-3 px-4 font-medium">Status</th>
+                <th className="py-3 px-5 font-medium text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#27272A]/70">
+            <tbody className="divide-y divide-zinc-100">
               {escrows.map((e) => (
-                <tr key={e.id} className="hover:bg-[#18181C]/60">
-                  <td className="py-3 px-4">
-                    <div className="font-mono font-semibold text-zinc-100">
-                      {e.tradeCode} • {e.assetName}
-                    </div>
-                    <div className="font-mono text-[10px] text-zinc-500 mt-0.5">
-                      {e.eppCipherPreview
-                        ? `AES-256 SEAL: ${e.eppCipherPreview}••`
-                        : "NO VAULT KEY YET"}
-                      {e.burnerVaultEmail ? ` • ${e.burnerVaultEmail}` : ""}
-                    </div>
+                <tr key={e.id} className="hover:bg-zinc-50/70">
+                  <td className="py-3.5 px-5">
+                    <div className="font-semibold text-slate-900">{e.assetName}</div>
+                    <div className="text-[11px] text-slate-400 font-mono">{e.tradeCode}</div>
                   </td>
-                  <td className="py-3 px-3 font-mono text-[11px] text-zinc-400">
-                    <div>B: {e.buyerAlias}</div>
-                    <div>S: {e.sellerAlias}</div>
-                  </td>
-                  <td className="py-3 px-3 text-right font-mono font-semibold text-zinc-100">
+                  <td className="py-3.5 px-4 text-right font-semibold text-slate-900">
                     {formatCurrency(e.assetPrice, e.currency)}
                   </td>
-                  <td className="py-3 px-3 text-right font-mono font-semibold text-[#10B981]">
+                  <td className="py-3.5 px-4 text-right font-semibold text-emerald-700">
                     {formatCurrency(e.totalPlatformFee, e.currency)}
                   </td>
-                  <td className="py-3 px-3">
-                    <Badge
-                      variant={
-                        e.state === "SETTLED"
-                          ? "emerald"
-                          : e.state === "DISPUTED" || e.state === "REFUNDED"
-                          ? "danger"
-                          : "amber"
-                      }
-                      className="font-mono text-[10px]"
-                    >
+                  <td className="py-3.5 px-4">
+                    <Badge variant={e.state === "SETTLED" ? "emerald" : e.state === "REFUNDED" ? "danger" : "amber"}>
                       {e.state}
                     </Badge>
                   </td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center justify-end gap-1.5 flex-wrap">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => setInspectedEscrow(e)}
-                      >
-                        <FileCode2 className="w-3 h-3" />
-                        Audit Logs
+                  <td className="py-3.5 px-5">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Button size="sm" variant="secondary" onClick={() => setInspected(e)}>
+                        <FileText className="w-3.5 h-3.5" />
+                        Logs
                       </Button>
                       {["VERIFICATION_RELEASE", "DISPUTED"].includes(e.state) && (
-                        <Button
-                          size="sm"
-                          variant="emerald"
-                          disabled={isPending}
-                          onClick={() => handleApproveTransfer(e.id, e.tradeCode)}
-                        >
-                          <CheckCircle2 className="w-3 h-3" />
+                        <Button size="sm" variant="emerald" disabled={isPending} onClick={() => handleApprove(e.id, e.tradeCode)}>
+                          <CheckCircle2 className="w-3.5 h-3.5" />
                           Approve
                         </Button>
                       )}
                       {!["SETTLED", "REFUNDED"].includes(e.state) && (
-                        <Button
-                          size="sm"
-                          variant="danger"
-                          disabled={isPending}
-                          onClick={() => handleForceRefund(e.id, e.tradeCode)}
-                        >
-                          <RefreshCcw className="w-3 h-3" />
+                        <Button size="sm" variant="danger" disabled={isPending} onClick={() => handleRefund(e.id, e.tradeCode)}>
+                          <RefreshCcw className="w-3.5 h-3.5" />
                           Refund
                         </Button>
                       )}
                       <Link href={`/escrow/${e.id}`}>
-                        <Button size="sm" variant="ghost">
-                          <ExternalLink className="w-3 h-3" />
-                        </Button>
+                        <Button size="sm" variant="ghost">View</Button>
                       </Link>
                     </div>
                   </td>
@@ -211,54 +149,30 @@ export function AdminOpsClient({
         </div>
       </TerminalCard>
 
-      {/* Platform Revenue Ledger */}
       <TerminalCard className="overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#27272A] flex items-center justify-between">
-          <div className="font-mono text-xs font-semibold text-zinc-200">
-            PLATFORM REVENUE LEDGER (5.0% SELLER + 2.5% BUYER = 7.5% TAKE RATE)
-          </div>
+        <div className="px-5 py-4 border-b border-zinc-100 font-semibold text-sm text-slate-900">
+          Platform Revenue Ledger (7.5% Take Rate)
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-[#27272A] bg-[#0D0D10] font-mono text-[10px] uppercase text-zinc-500">
-                <th className="py-2.5 px-4">Trade / Asset</th>
-                <th className="py-2.5 px-3 text-right">Gross Volume</th>
-                <th className="py-2.5 px-3 text-right">Buyer Fee (2.5%)</th>
-                <th className="py-2.5 px-3 text-right">Seller Fee (5.0%)</th>
-                <th className="py-2.5 px-3 text-right">Net Platform Fee</th>
-                <th className="py-2.5 px-4 text-right">Status</th>
+              <tr className="border-b border-zinc-100 bg-zinc-50 text-slate-500">
+                <th className="py-3 px-5 font-medium">Order</th>
+                <th className="py-3 px-4 font-medium text-right">Gross</th>
+                <th className="py-3 px-4 font-medium text-right">Net Fee</th>
+                <th className="py-3 px-5 font-medium text-right">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#27272A]/70 font-mono">
+            <tbody className="divide-y divide-zinc-100">
               {feeLedger.map((f) => (
-                <tr key={f.id} className="hover:bg-[#18181C]/60">
-                  <td className="py-2.5 px-4 text-zinc-100">
-                    {f.tradeCode} • {f.assetName}
+                <tr key={f.id}>
+                  <td className="py-3 px-5 font-medium text-slate-900">
+                    {f.assetName} <span className="text-slate-400 font-mono ml-1">{f.tradeCode}</span>
                   </td>
-                  <td className="py-2.5 px-3 text-right text-zinc-200">
-                    {formatCurrency(f.grossAmount, f.currency)}
-                  </td>
-                  <td className="py-2.5 px-3 text-right text-zinc-400">
-                    {formatCurrency(f.buyerFee, f.currency)}
-                  </td>
-                  <td className="py-2.5 px-3 text-right text-zinc-400">
-                    {formatCurrency(f.sellerFee, f.currency)}
-                  </td>
-                  <td className="py-2.5 px-3 text-right font-bold text-[#10B981]">
-                    {formatCurrency(f.totalFee, f.currency)}
-                  </td>
-                  <td className="py-2.5 px-4 text-right">
-                    <Badge
-                      variant={
-                        f.status === "COLLECTED"
-                          ? "emerald"
-                          : f.status === "REFUNDED"
-                          ? "danger"
-                          : "amber"
-                      }
-                      className="text-[10px]"
-                    >
+                  <td className="py-3 px-4 text-right text-slate-700">{formatCurrency(f.grossAmount, f.currency)}</td>
+                  <td className="py-3 px-4 text-right font-semibold text-emerald-700">{formatCurrency(f.totalFee, f.currency)}</td>
+                  <td className="py-3 px-5 text-right">
+                    <Badge variant={f.status === "COLLECTED" ? "emerald" : f.status === "REFUNDED" ? "danger" : "amber"}>
                       {f.status}
                     </Badge>
                   </td>
@@ -269,48 +183,30 @@ export function AdminOpsClient({
         </div>
       </TerminalCard>
 
-      {/* Encrypted Audit Log Inspector Modal */}
-      {inspectedEscrow && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-lg bg-[#121215] border border-[#27272A] p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-[#27272A] pb-3">
+      {inspected && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-xl max-h-[80vh] overflow-y-auto rounded-2xl bg-white border border-zinc-200 shadow-xl p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
               <div>
-                <h3 className="font-mono text-sm font-bold text-zinc-100">
-                  ENCRYPTED AUDIT TRAIL — {inspectedEscrow.tradeCode} ({inspectedEscrow.assetName})
+                <h3 className="text-sm font-bold text-slate-900">
+                  Audit Log — {inspected.assetName} ({inspected.tradeCode})
                 </h3>
-                <p className="text-xs text-zinc-500">
-                  AES-256-GCM Ciphertext Prefix: {inspectedEscrow.eppCipherPreview || "N/A"}
+                <p className="text-xs text-slate-500 font-mono">
+                  AES-256 Seal: {inspected.eppCipherPreview || "Pending"}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setInspectedEscrow(null)}
-                className="text-zinc-500 hover:text-zinc-100 cursor-pointer"
-              >
+              <button type="button" onClick={() => setInspected(null)} className="text-slate-400 hover:text-slate-800 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
-
             <div className="space-y-2.5">
-              {inspectedEscrow.auditLogs.map((l) => (
-                <div
-                  key={l.id}
-                  className="rounded bg-[#09090B] border border-[#27272A] p-3 space-y-1 text-xs"
-                >
-                  <div className="flex items-center justify-between font-mono text-[10px]">
-                    <span className="text-[#60A5FA] font-semibold">
-                      [{l.actorRole}] {l.action}
-                    </span>
-                    <span className="text-zinc-500">
-                      {new Date(l.createdAtIso).toLocaleString()}
-                    </span>
+              {inspected.auditLogs.map((l) => (
+                <div key={l.id} className="rounded-xl bg-zinc-50 border border-zinc-200/70 p-3.5 text-xs space-y-1">
+                  <div className="flex justify-between text-[11px] text-slate-400">
+                    <span className="font-mono font-semibold text-slate-700">[{l.actorRole}] {l.action}</span>
+                    <span>{new Date(l.createdAtIso).toLocaleString()}</span>
                   </div>
-                  <p className="text-zinc-300">{l.details}</p>
-                  {l.metadata && (
-                    <pre className="text-[10px] font-mono text-zinc-500 bg-[#121215] p-2 rounded overflow-x-auto">
-                      {l.metadata}
-                    </pre>
-                  )}
+                  <p className="text-slate-600">{l.details}</p>
                 </div>
               ))}
             </div>
