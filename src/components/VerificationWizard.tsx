@@ -126,37 +126,39 @@ export function VerificationWizard() {
               type="button"
               onClick={() => handleTypeSwitch("DOMAIN")}
               className={cn(
-                "flex items-center gap-3 p-4 rounded-xl border text-left transition-all cursor-pointer",
+                "flex items-center justify-between gap-3 p-4 rounded-xl bg-white text-left transition-all cursor-pointer",
                 assetType === "DOMAIN"
-                  ? "bg-slate-900 text-white border-slate-900 shadow-xs"
-                  : "bg-white text-slate-700 border-zinc-200 hover:border-zinc-300"
+                  ? "border-2 border-emerald-600 ring-2 ring-emerald-500/15 shadow-xs text-slate-900"
+                  : "border border-zinc-200 hover:border-zinc-300 text-slate-700"
               )}
             >
-              <Globe className="w-5 h-5 shrink-0" />
-              <div>
-                <div className="text-sm font-semibold">Domain Name</div>
-                <div className={cn("text-xs", assetType === "DOMAIN" ? "text-zinc-300" : "text-slate-400")}>
-                  .ai, .xyz, .io, .com
+              <div className="flex items-center gap-3">
+                <Globe className={cn("w-5 h-5 shrink-0", assetType === "DOMAIN" ? "text-emerald-600" : "text-slate-400")} />
+                <div>
+                  <div className="text-sm font-semibold text-slate-900">Domain Name</div>
+                  <div className="text-xs text-slate-500">.ai, .xyz, .io, .com</div>
                 </div>
               </div>
+              {assetType === "DOMAIN" && <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />}
             </button>
             <button
               type="button"
               onClick={() => handleTypeSwitch("HANDLE")}
               className={cn(
-                "flex items-center gap-3 p-4 rounded-xl border text-left transition-all cursor-pointer",
+                "flex items-center justify-between gap-3 p-4 rounded-xl bg-white text-left transition-all cursor-pointer",
                 assetType === "HANDLE"
-                  ? "bg-slate-900 text-white border-slate-900 shadow-xs"
-                  : "bg-white text-slate-700 border-zinc-200 hover:border-zinc-300"
+                  ? "border-2 border-emerald-600 ring-2 ring-emerald-500/15 shadow-xs text-slate-900"
+                  : "border border-zinc-200 hover:border-zinc-300 text-slate-700"
               )}
             >
-              <AtSign className="w-5 h-5 shrink-0" />
-              <div>
-                <div className="text-sm font-semibold">Social / Web3 Handle</div>
-                <div className={cn("text-xs", assetType === "HANDLE" ? "text-zinc-300" : "text-slate-400")}>
-                  X, Telegram, ENS, .sol
+              <div className="flex items-center gap-3">
+                <AtSign className={cn("w-5 h-5 shrink-0", assetType === "HANDLE" ? "text-emerald-600" : "text-slate-400")} />
+                <div>
+                  <div className="text-sm font-semibold text-slate-900">Social / Web3 Handle</div>
+                  <div className="text-xs text-slate-500">X, Telegram, ENS, .sol</div>
                 </div>
               </div>
+              {assetType === "HANDLE" && <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />}
             </button>
           </div>
         </div>
