@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { Badge, TerminalCard } from "@/components/ui/primitives";
 import { TradeActionPanel } from "@/components/TradeActionPanel";
+import { ThreeAssetShowcase } from "@/components/ThreeAssetShowcase";
 import { formatCurrency } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -66,9 +67,16 @@ export default async function AssetDetailPage({
       </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left 7 Cols: Friendly Listing Showcase */}
+        {/* Left 7 Cols: Interactive 3D Collectible Card + Listing Details */}
         <div className="lg:col-span-7 space-y-6">
-          <TerminalCard className="p-6 sm:p-8 space-y-5">
+          <ThreeAssetShowcase
+            name={asset.name}
+            subCategory={asset.subCategory}
+            platform={asset.registrarOrPlatform}
+            priceLabel={formatCurrency(asset.lowestAsk)}
+          />
+
+          <TerminalCard className="p-6 sm:p-7 space-y-5">
             <div className="flex items-center gap-2 flex-wrap">
               <Badge>{asset.subCategory}</Badge>
               <Badge variant="emerald">

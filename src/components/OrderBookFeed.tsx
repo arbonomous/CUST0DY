@@ -10,6 +10,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Badge, Button } from "@/components/ui/primitives";
+import { ThreeHeroCanvas } from "@/components/ThreeHeroCanvas";
 import { cn, formatCurrency } from "@/lib/utils";
 
 export interface FeedAsset {
@@ -75,42 +76,45 @@ export function OrderBookFeed({ assets }: { assets: FeedAsset[] }) {
 
   return (
     <div className="space-y-8">
-      {/* Search-First Consumer Hero */}
-      <section className="text-center max-w-2xl mx-auto pt-4 pb-2 space-y-5">
-        <div className="space-y-2.5">
-          <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-slate-900">
-            Find your next iconic domain or handle.
-          </h1>
-          <p className="text-sm sm:text-base text-slate-500 leading-relaxed">
-            Every listing is ownership-verified. Your payment stays protected with Cust0dy until the transfer is safely in your hands.
-          </p>
-        </div>
+      {/* Search-First Consumer Hero with Seamless Three.js Ambient 3D Glass Sculptures */}
+      <section className="relative rounded-3xl bg-gradient-to-b from-white via-[#FAFAFA] to-zinc-50/80 border border-zinc-200/70 px-4 py-12 sm:py-16 overflow-hidden">
+        <ThreeHeroCanvas />
+        <div className="relative z-10 text-center max-w-2xl mx-auto space-y-5">
+          <div className="space-y-2.5">
+            <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-slate-900">
+              Find your next iconic domain or handle.
+            </h1>
+            <p className="text-sm sm:text-base text-slate-500 leading-relaxed">
+              Every listing is ownership-verified. Your payment stays protected with Cust0dy until the transfer is safely in your hands.
+            </p>
+          </div>
 
-        {/* Big Inviting Search Bar */}
-        <div className="relative max-w-xl mx-auto">
-          <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search domains or handles like agent.ai, @nexus, apex.eth..."
-            className="w-full h-12 pl-11 pr-4 rounded-full bg-white border border-zinc-200 shadow-sm text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 transition-all"
-          />
-        </div>
+          {/* Big Inviting Search Bar */}
+          <div className="relative max-w-xl mx-auto">
+            <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search domains or handles like agent.ai, @nexus, apex.eth..."
+              className="w-full h-12 pl-11 pr-4 rounded-full bg-white/95 backdrop-blur border border-zinc-200 shadow-sm text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 transition-all"
+            />
+          </div>
 
-        {/* Simple Trust Reassurance Row */}
-        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-slate-500 pt-1">
-          <span className="inline-flex items-center gap-1.5">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-            100% Verified Owners
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <Lock className="w-3.5 h-3.5 text-emerald-600" />
-            Protected Escrow Transfer
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <ArrowLeftRight className="w-3.5 h-3.5 text-blue-600" />
-            Buy, Offer, or Trade
-          </span>
+          {/* Simple Trust Reassurance Row */}
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-slate-600 pt-1">
+            <span className="inline-flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              100% Verified Owners
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Lock className="w-3.5 h-3.5 text-emerald-600" />
+              Protected Escrow Transfer
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <ArrowLeftRight className="w-3.5 h-3.5 text-blue-600" />
+              Buy, Offer, or Trade
+            </span>
+          </div>
         </div>
       </section>
 
