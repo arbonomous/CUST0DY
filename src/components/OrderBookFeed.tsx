@@ -38,18 +38,18 @@ export interface FeedAsset {
 type TabKey = "ALL" | "DOMAINS" | "HANDLES" | "WEB3" | "SWAP";
 
 const TABS: { key: TabKey; label: string }[] = [
-  { key: "ALL", label: "All Hype Assets" },
+  { key: "ALL", label: "All Assets" },
   { key: "DOMAINS", label: ".AI & Tech Domains" },
-  { key: "HANDLES", label: "OG Social Handles" },
-  { key: "WEB3", label: "Web3 Names (.sol / .eth / TG)" },
-  { key: "SWAP", label: "Swap-Enabled" },
+  { key: "HANDLES", label: "Social Handles" },
+  { key: "WEB3", label: "Web3 Names" },
+  { key: "SWAP", label: "Open to Swaps" },
 ];
 
 export function OrderBookFeed({ assets }: { assets: FeedAsset[] }) {
   const [activeTab, setActiveTab] = useState<TabKey>("ALL");
   const [query, setQuery] = useState("");
   const [sortBy, setSortBy] = useState<"ASK_DESC" | "ASK_ASC" | "DELTA_DESC">("ASK_DESC");
-  const [viewMode, setViewMode] = useState<"TABLE" | "GRID">("TABLE");
+  const [viewMode, setViewMode] = useState<"TABLE" | "GRID">("GRID");
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

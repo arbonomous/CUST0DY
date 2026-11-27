@@ -34,9 +34,9 @@ interface NavbarProps {
 }
 
 const DEMO_DESKS = [
-  { id: "user_buyer_1", label: "DESK_7F2A", roleTag: "BUYER", desc: "Alex Vance • ETH Wallet" },
-  { id: "user_seller_1", label: "VAULT_9C1E", roleTag: "SELLER", desc: "Maren K. • SOL Wallet" },
-  { id: "user_admin_1", label: "OPS_0001", roleTag: "ADMIN", desc: "Cust0dy Escrow Ops" },
+  { id: "user_buyer_1", label: "Buyer Mode", roleTag: "BUYER", desc: "Test instant buying, bidding & swaps" },
+  { id: "user_seller_1", label: "Seller Mode", roleTag: "SELLER", desc: "Test EPP handover & accepting swaps" },
+  { id: "user_admin_1", label: "Admin Console", roleTag: "ADMIN", desc: "Review disputes & revenue ledger" },
 ];
 
 export function Navbar({
